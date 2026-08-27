@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.secrets/
+cookies.json
+storage-state.json
+*.har
+*.log
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+.DS_Store

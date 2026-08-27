@@ -1,0 +1,98 @@
+{
+  "profile": {
+    "entityUrn": "urn:li:fsd_profile:synthetic123",
+    "publicIdentifier": "example-person",
+    "firstName": "Example",
+    "lastName": "Person",
+    "headline": "Backend Engineer",
+    "summary": "Builds reliable systems.",
+    "geoLocationName": "Bengaluru, Karnataka, India",
+    "geoCountryUrn": "urn:li:fs_geo:in",
+    "industryName": "Software Development",
+    "profilePicture": {
+      "displayImageReference": {
+        "vectorImage": {
+          "rootUrl": "https://media.example.invalid/profile/",
+          "artifacts": [
+            {"width": 100, "height": 100, "fileIdentifyingUrlPathSegment": "small.jpg"},
+            {"width": 800, "height": 800, "fileIdentifyingUrlPathSegment": "large.jpg"}
+          ]
+        }
+      }
+    },
+    "backgroundImage": {
+      "com.linkedin.common.VectorImage": {
+        "rootUrl": "https://media.example.invalid/background/",
+        "artifacts": [
+          {"width": 1200, "height": 300, "fileIdentifyingUrlPathSegment": "cover.jpg"}
+        ]
+      }
+    }
+  },
+  "positionView": {
+    "elements": [
+      {
+        "companyName": "Example Systems",
+        "companyUrn": "urn:li:fs_miniCompany:100",
+        "profilePositionInPositionGroup": {
+          "elements": [
+            {
+              "title": "Senior Backend Engineer",
+              "employmentType": "Full-time",
+              "locationName": "Remote",
+              "description": "Designed APIs.",
+              "timePeriod": {"startDate": {"year": 2024, "month": 1}}
+            },
+            {
+              "title": "Backend Engineer",
+              "timePeriod": {
+                "startDate": {"year": 2022},
+                "endDate": {"year": 2023, "month": 12}
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "educationView": {
+    "elements": [
+      {
+        "schoolName": "Example University",
+        "schoolUrn": "urn:li:fs_miniSchool:200",
+        "degreeName": "Bachelor of Engineering",
+        "fieldOfStudy": "Computer Science",
+        "activities": "Programming club",
+        "notes": "Synthetic fixture entry.",
+        "timePeriod": {"startDate": {"year": 2018}, "endDate": {"year": 2022}}
+      }
+    ]
+  },
+  "skillView": {
+    "elements": [
+      {"name": "Python", "endorsementCount": 7},
+      {"name": "FastAPI"}
+    ]
+  },
+  "certificationView": {
+    "elements": [
+      {
+        "name": "Synthetic Cloud Certificate",
+        "authority": "Example Institute",
+        "licenseNumber": "SYNTHETIC-1",
+        "url": "https://example.invalid/credential",
+        "timePeriod": {"startDate": {"year": 2025, "month": 2}}
+      }
+    ]
+  },
+  "languageView": {
+    "elements": [{"name": "English", "proficiency": "FULL_PROFESSIONAL"}]
+  },
+  "volunteerExperienceView": {"elements": []},
+  "projectView": {
+    "elements": [{"title": "Synthetic API", "description": "A test-only project."}]
+  },
+  "honorView": {"elements": []},
+  "publicationView": {"elements": []},
+  "courseView": {"elements": [{"name": "Distributed Systems", "number": "CS-500"}]}
+}
