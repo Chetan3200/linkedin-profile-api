@@ -16,6 +16,8 @@ from app.middleware.rate_limit import RateLimitMiddleware
 from app.schemas.errors import APIError, ErrorResponse
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 settings = get_settings()
 
 

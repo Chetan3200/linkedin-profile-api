@@ -5,7 +5,7 @@ TOP_CARD_DECORATION = "com.linkedin.voyager.dash.deco.identity.profile.TopCardSu
 FULL_PROFILE_DECORATION = "com.linkedin.voyager.dash.deco.identity.profile.FullProfile-76"
 
 # GraphQL query IDs rotate frequently. Add verified IDs here rather than scattering them
-# through parsers. The profileView and skills Voyager endpoints are the current MVP sources.
+# through parsers. The current MVP uses the REST top-card and full-profile decorations.
 GRAPHQL_QUERY_IDS: dict[str, str] = {}
 
 
