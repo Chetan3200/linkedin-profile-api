@@ -1,0 +1,1 @@
+0:[null,null,[["{\"semanticId\":\"entity-collection-item-language-1\"}",["$","div",null,{"children":[["$","p",null,{"children":"Example Language"}],["$","p",null,{"children":"Professional proficiency"}]]}]]]]

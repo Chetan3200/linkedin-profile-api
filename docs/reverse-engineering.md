@@ -9,15 +9,17 @@ Start from an authenticated profile page and inspect Fetch/XHR traffic in browse
 - `voyager/api`
 - `graphql`
 - `identity/dash/profiles`
-- `profileComponents`
+- `rsc-action`
 
 Interactions that commonly trigger structured requests are opening a member profile and selecting **Show all** for experience, education, skills, certifications, or languages. Record only endpoint patterns, parameter names, decoration names, GraphQL operation names, pagination behavior, and sanitized response types.
 
-For this MVP, the live sequence was established without retaining browser captures:
+For this MVP, the live sequence was established without committing browser captures:
 
-1. A top-card request resolves a public identifier to a profile entity and profile URN.
-2. A URN-based full-profile request returns normalized profile entities and sections.
-3. The historic `identity/profiles/{identifier}/profileView` endpoint returned HTTP 410 and is not used.
+1. Voyager REST resolves a public identifier to a profile entity and URN.
+2. Registered GraphQL returns current identity/version metadata.
+3. The main profile and `/details/{section}/` routes return RSC Flight streams.
+4. `POST /flagship-web/rsc-action/actions/pagination` returns section records.
+5. Historical `profileView` and `FullProfile` flows are not used.
 
 ## Minimum Headers
 
@@ -29,6 +31,7 @@ Verified request names are:
 - `user-agent`
 - `x-li-lang: en_US`
 - `x-restli-protocol-version: 2.0.0`
+- `x-li-rsc-stream: true` for Flight responses
 
 The authenticated cookie jar contains `li_at` and `JSESSIONID`. Browser telemetry and unrelated application cookies are not stored or replayed by the application.
 
@@ -36,21 +39,20 @@ The JSESSIONID cookie commonly includes surrounding quotes. Preserve the cookie 
 
 ## Candidate Endpoint Patterns
 
-Current REST patterns:
+Current request patterns:
 
 ```text
 GET /voyager/api/me
 GET /voyager/api/identity/dash/profiles?q=memberIdentity&memberIdentity={identifier}&decorationId={top-card-decoration}
-GET /voyager/api/identity/dash/profiles/{encoded-profile-urn}?decorationId={full-profile-decoration}
+GET /voyager/api/graphql?includeWebMetadata=true&variables=(memberIdentity:{id})&queryId={registered-query-id}
+GET /in/{identifier}/
+GET /in/{identifier}/details/{section}/
+POST /flagship-web/rsc-action/actions/pagination
 ```
 
-Fallback GraphQL pattern:
+GraphQL variables use Rest.li tuple syntax rather than JSON. Parentheses and colons must remain literal; standard query-parameter encoding returns HTTP 400. Query IDs must be verified against current network traffic.
 
-```text
-GET /voyager/api/graphql?variables=(profileUrn:...,sectionType:...)&queryId={registered-query-id}
-```
-
-GraphQL variables use Rest.li tuple syntax rather than JSON. Query IDs must be verified against current LinkedIn web bundles or browser network traffic before use.
+Flight responses contain hexadecimal chunk labels, JSON model chunks, `I` import chunks, and cross-chunk references such as `$L`, `$Q`, and path references. The parser resolves references before locating semantic collection items. Only synthetic Flight fixtures are committed.
 
 ## Public Schema Mapping
 
@@ -58,26 +60,25 @@ LinkedIn normalized responses commonly contain a primary object plus `included` 
 
 | Upstream concept | Public schema |
 | --- | --- |
-| Profile entity | names, headline, About, industry, location, URN |
-| VectorImage | profile/background `Image` |
-| Position and PositionGroup | flattened `Experience` entries |
-| Education and school references | `Education` and `School` |
-| Skill | `Skill` |
-| Certification | `Certification` |
-| Language | `Language` |
-| Other supported profile entities | volunteering, projects, honors, publications, courses |
+| Voyager profile entity | profile URN and structured fields when present |
+| RSC top-card component | full name, headline, location, images |
+| Experience detail records | `Experience` |
+| Education pager records | `Education` and `School` |
+| Skills pager action/text | `Skill` |
+| Certification pager records | `Certification` |
+| Language pager records | `Language` |
 
 Structured date objects are mapped to nullable year, month, and day fields. Display strings are not parsed when structured dates are available.
 
 ## Query ID Rotation
 
-GraphQL query hashes rotate with LinkedIn deployments. Stable operation names and currently verified IDs belong in `app/linkedin/endpoints.py`, never in section parsers.
+GraphQL hashes and RSC component/pager names can rotate with LinkedIn deployments. All verified identifiers belong in `app/linkedin/endpoints.py`, never in parsers.
 
 To update the registry:
 
 1. Reproduce the relevant profile-page interaction.
-2. Find the successful GraphQL request in Fetch/XHR traffic.
-3. Record the operation name, full query ID, variables, and pagination behavior.
+2. Find the successful GraphQL or RSC request in Network traffic.
+3. Record only operation/component names, variable keys, and pagination behavior.
 4. Update the central registry.
 5. Add a synthetic fixture for the response shape.
 6. Run parser and API tests before enabling the ID.

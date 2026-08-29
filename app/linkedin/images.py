@@ -62,6 +62,27 @@ def first_resolved_image(values: Iterable[Any]) -> Image | None:
     return None
 
 
+def resolve_rsc_image(render_payload: Any) -> Image | None:
+    if not isinstance(render_payload, dict):
+        return None
+    root = render_payload.get("rootUrl")
+    renditions = render_payload.get("imageRenditions")
+    if not isinstance(root, str) or not isinstance(renditions, list):
+        return None
+    valid = [value for value in renditions if isinstance(value, dict)]
+    if not valid:
+        return None
+    rendition = max(valid, key=_image_area)
+    suffix = rendition.get("suffixUrl")
+    if not isinstance(suffix, str):
+        return None
+    return Image(
+        url=f"{root}{suffix}",
+        width=_as_int(rendition.get("width")),
+        height=_as_int(rendition.get("height")),
+    )
+
+
 def _image_area(artifact: dict[str, Any]) -> int:
     return (_as_int(artifact.get("width")) or 0) * (_as_int(artifact.get("height")) or 0)
 

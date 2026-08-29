@@ -30,6 +30,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         application.state.extractor = ProfileExtractor(
             VoyagerClient(client),
             ExtractionGate(settings.linkedin_min_interval_seconds),
+            settings.linkedin_section_delay_seconds,
+            settings.profile_cache_ttl_seconds,
         )
     yield
     if client:

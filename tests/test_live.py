@@ -6,6 +6,7 @@ import pytest
 from app.config import Settings
 from app.linkedin.parsers.common import walk_dicts
 from app.linkedin.parsers.profile import parse_profile
+from app.linkedin.rsc import FlightDocument
 from app.linkedin.session import create_linkedin_client
 from app.linkedin.urls import ProfileTarget
 from app.linkedin.voyager_client import VoyagerClient
@@ -41,7 +42,12 @@ def test_authenticated_own_profile_request() -> None:
             )
             assert profile.linkedin_urn
             assert profile.full_name
-            full_payload = await voyager.full_profile(profile.linkedin_urn)
-            assert isinstance(full_payload, dict)
+            member_identity = profile.linkedin_urn.rsplit(":", 1)[-1]
+            top_card = await voyager.top_card(member_identity)
+            assert isinstance(top_card, dict)
+            experience = FlightDocument.parse(
+                await voyager.detail_section(identifier, "experience")
+            )
+            assert experience.frames
 
     asyncio.run(run())

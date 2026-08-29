@@ -42,6 +42,15 @@ def parse_profile(payload: dict[str, Any], target: ProfileTarget) -> Profile:
     )
 
 
+def find_profile_urn(payload: dict[str, Any]) -> str | None:
+    for value in walk_dicts(payload):
+        entity_type = value.get("$type")
+        urn = get_text(value, "entityUrn", "profileUrn", "urn")
+        if isinstance(entity_type, str) and entity_type.endswith(".Profile") and urn:
+            return urn
+    return None
+
+
 def _find_profile(payload: dict[str, Any], identifier: str) -> dict[str, Any] | None:
     for root in root_documents(payload):
         direct = root.get("profile")

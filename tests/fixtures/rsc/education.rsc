@@ -1,0 +1,1 @@
+0:[null,null,[["{\"semanticId\":\"entity-collection-item-education-1\"}",["$","div",null,{"children":[["$","p",null,{"children":"Example University"}],["$","p",null,{"children":"Bachelor of Engineering"}],["$","span",null,{"textProps":{"children":["2018 – 2022"]}}]]}]]]]

@@ -7,11 +7,13 @@ An unofficial, low-volume hiring-challenge proof of concept that resolves a Link
 ## Features
 
 - Strict LinkedIn profile URL validation and SSRF prevention
-- Direct authenticated Voyager HTTP client built with `httpx.AsyncClient`
+- Direct authenticated Voyager and RSC Flight client built with `httpx.AsyncClient`
 - Stable Pydantic v2 response models instead of raw upstream responses
 - Name, headline, location, About, images, experience, education, skills, certifications, languages, and optional profile sections
 - Grouped experience flattened into ordered individual roles
 - Vector image resolution with the largest artifact selected
+- Current SDUI/RSC detail routes with direct pagination action support
+- Short-lived response cache to prevent duplicate Swagger requests
 - Partial-result metadata for unavailable or failed sections
 - Typed errors for authentication, checkpoints, rate limits, blocks, timeouts, and schema changes
 - One upstream extraction at a time with a configurable minimum interval
@@ -24,10 +26,11 @@ An unofficial, low-volume hiring-challenge proof of concept that resolves a Link
 Client
   -> FastAPI route and URL validator
   -> process-local rate limit and extraction gate
-  -> authenticated Voyager client
-  -> top-card lookup by public identifier
-  -> full-profile lookup by profile URN
-  -> normalized entity hydration and section parsers
+  -> authenticated Voyager/RSC client
+  -> public identifier to profile URN resolver
+  -> literal Rest.li GraphQL identity/version request
+  -> main profile and detail RSC Flight streams
+  -> RSC pagination and normalized section parsers
   -> stable Pydantic response
 ```
 
@@ -46,10 +49,12 @@ The main components are:
 
 1. Validate the submitted URL and extract only its public identifier.
 2. Construct all upstream URLs from the fixed `https://www.linkedin.com` base.
-3. Resolve the top card through `identity/dash/profiles`.
-4. Extract the profile URN and request the URN-based full-profile decoration.
-5. Hydrate LinkedIn's normalized `included` entities and parse each section.
-6. Return stable JSON with section status, warnings, and a request ID.
+3. Resolve the profile URN through `identity/dash/profiles`.
+4. Call the current identity/version GraphQL query with literal Rest.li punctuation.
+5. Fetch the main profile and required `/details/{section}/` RSC Flight streams.
+6. Follow each stream's direct RSC pagination metadata with conservative pacing.
+7. Decode Flight references and normalize components into stable models.
+8. Return stable JSON with section status, warnings, and a request ID.
 
 The user-provided URL is never fetched directly.
 
@@ -90,6 +95,8 @@ Optional:
 LINKEDIN_CSRF_TOKEN=
 LINKEDIN_TIMEOUT_SECONDS=20
 LINKEDIN_MIN_INTERVAL_SECONDS=2
+LINKEDIN_SECTION_DELAY_SECONDS=1.5
+PROFILE_CACHE_TTL_SECONDS=30
 RATE_LIMIT_PER_IP=10
 RATE_LIMIT_GLOBAL=60
 RATE_LIMIT_WINDOW_SECONDS=60
@@ -232,7 +239,7 @@ The process-local lock and rate limiter apply independently to each replica. A s
 
 ## Reverse Engineering
 
-The implementation was verified against live authenticated requests while retaining only sanitized fixtures. The current MVP uses a public-identifier top-card lookup followed by a profile-URN full-profile request. Registered GraphQL IDs are centralized in `app/linkedin/endpoints.py` if a future section requires GraphQL.
+The implementation was verified against two live profiles while retaining only synthetic fixtures in Git. REST resolves the public identifier, a current registered GraphQL query provides identity/version metadata, and LinkedIn's SDUI/RSC Flight routes provide top-card and detail-section data. Pagination requests are reconstructed from metadata returned in each detail stream. Query IDs, RSC component IDs, pager IDs, and screen IDs are centralized in `app/linkedin/endpoints.py`.
 
 See [`docs/reverse-engineering.md`](docs/reverse-engineering.md) for the update procedure and endpoint mapping.
 
@@ -254,6 +261,8 @@ See [`docs/reverse-engineering.md`](docs/reverse-engineering.md) for the update 
 - Private or hidden sections cannot be returned.
 - LinkedIn sessions can expire or be invalidated.
 - Voyager endpoints, decorations, GraphQL query IDs, and response schemas can change.
+- RSC component, pager, and Flight response structures can change without notice.
+- About is deferred through a state-bound component action and may be reported as partial.
 - Cloud IP addresses may be blocked or challenged even when local requests work.
 - LinkedIn CDN image URLs may expire.
 - Direct Voyager requests generally do not open a profile page, but LinkedIn controls server-side profile-view tracking.

@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
@@ -25,11 +26,59 @@ class VoyagerClient:
     async def top_profile(self, public_identifier: str) -> dict[str, Any]:
         return await self._get_json(endpoints.top_profile(public_identifier))
 
-    async def full_profile(self, profile_urn: str) -> dict[str, Any]:
-        return await self._get_json(endpoints.full_profile(profile_urn))
+    async def top_card(self, member_identity: str) -> dict[str, Any]:
+        return await self._get_json(endpoints.top_card(member_identity))
 
-    async def skills(self, public_identifier: str) -> dict[str, Any]:
-        return await self._get_json(endpoints.skills(public_identifier))
+    async def detail_section(self, public_identifier: str, section: str) -> bytes:
+        return await self._get_flight(endpoints.detail_section(public_identifier, section))
+
+    async def profile_page(self, public_identifier: str) -> bytes:
+        return await self._get_flight(endpoints.profile_page(public_identifier))
+
+    async def _get_flight(self, path: str) -> bytes:
+        try:
+            response = await self._client.get(
+                path,
+                headers={"accept": "*/*", "x-li-rsc-stream": "true"},
+            )
+        except httpx.TimeoutException as exc:
+            raise LinkedInTimeout() from exc
+        except httpx.HTTPError as exc:
+            raise LinkedInUpstreamError() from exc
+
+        self._raise_for_upstream(response)
+        if not response.headers.get("content-type", "").startswith("application/octet-stream"):
+            raise UpstreamSchemaChanged()
+        return response.content
+
+    async def paginate_section(self, pagination_request: dict[str, Any], section: str) -> bytes:
+        client_arguments = deepcopy(pagination_request["requestedArguments"])
+        client_arguments["states"] = []
+        client_arguments["screenId"] = endpoints.RSC_SCREEN_IDS[section]
+        payload = {
+            "pagerId": pagination_request["pagerId"],
+            "clientArguments": client_arguments,
+            "paginationRequest": pagination_request,
+        }
+        try:
+            response = await self._client.post(
+                endpoints.RSC_PAGINATION_PATH,
+                headers={
+                    "accept": "*/*",
+                    "content-type": "application/json",
+                    "x-li-rsc-stream": "true",
+                },
+                json=payload,
+            )
+        except httpx.TimeoutException as exc:
+            raise LinkedInTimeout() from exc
+        except httpx.HTTPError as exc:
+            raise LinkedInUpstreamError() from exc
+
+        self._raise_for_upstream(response)
+        if not response.headers.get("content-type", "").startswith("application/octet-stream"):
+            raise UpstreamSchemaChanged()
+        return response.content
 
     async def me(self) -> dict[str, Any]:
         return await self._get_json(endpoints.ME)
@@ -37,7 +86,15 @@ class VoyagerClient:
     async def _get_json(self, path: str) -> dict[str, Any]:
         for attempt in range(2):
             try:
-                response = await self._client.get(path)
+                response = await self._client.get(
+                    path,
+                    headers={
+                        "accept": "application/vnd.linkedin.normalized+json+2.1",
+                        "accept-language": "en-US,en;q=0.9",
+                        "x-li-lang": "en_US",
+                        "x-restli-protocol-version": "2.0.0",
+                    },
+                )
             except httpx.TimeoutException as exc:
                 raise LinkedInTimeout() from exc
             except httpx.HTTPError as exc:

@@ -1,0 +1,1 @@
+0:[null,null,[["{\"semanticId\":\"entity-collection-item-experience-1\"}",["$","div",null,{"children":[["$","p",null,{"children":"Senior Engineer"}],["$","p",null,{"children":"Example Systems · Full-time"}],["$","span",null,{"textProps":{"children":["Jan 2024 – Present · 2 yrs"]}}]]}]]]]

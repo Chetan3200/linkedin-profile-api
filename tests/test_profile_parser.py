@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from app.linkedin.errors import UpstreamSchemaChanged
-from app.linkedin.parsers.profile import parse_profile
+from app.linkedin.parsers.profile import find_profile_urn, parse_profile
 from app.linkedin.urls import validate_profile_url
 
 
@@ -43,3 +43,16 @@ def test_parses_sparse_profile() -> None:
 def test_unexpected_schema_raises_typed_error() -> None:
     with pytest.raises(UpstreamSchemaChanged):
         parse_profile({}, validate_profile_url("https://linkedin.com/in/example"))
+
+
+def test_finds_profile_urn_without_top_card_fields() -> None:
+    payload = {
+        "included": [
+            {
+                "$type": "com.linkedin.voyager.dash.identity.profile.Profile",
+                "entityUrn": "urn:li:fsd_profile:synthetic",
+            }
+        ]
+    }
+
+    assert find_profile_urn(payload) == "urn:li:fsd_profile:synthetic"
