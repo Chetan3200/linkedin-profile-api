@@ -7,6 +7,7 @@ from app.schemas.profile import Location, Profile, ProfileImages
 
 TOP_CARD_MARKER = "com.linkedin.sdui.impl.profile.components.topCard"
 MEMBER_PHOTO_VIEW = "profile-top-card-member-photo"
+ABOUT_MARKER = "com.linkedin.sdui.impl.profile.components.aboutSection"
 
 
 def parse_rsc_profile(
@@ -68,6 +69,29 @@ def merge_profiles(primary: Profile, fallback: Profile) -> Profile:
     if primary.images.background:
         data["images"]["background"] = primary.images.background.model_dump()
     return Profile.model_validate(data)
+
+
+def parse_rsc_about(document: FlightDocument) -> str | None:
+    section = next(
+        (
+            value
+            for value in document.root_objects()
+            if value.get("observabilityIdentifier") == ABOUT_MARKER
+        ),
+        None,
+    )
+    if section is None:
+        return None
+
+    candidates: list[str] = []
+    for value in _walk(section):
+        if not isinstance(value, dict) or not isinstance(value.get("textProps"), dict):
+            continue
+        text = _rendered_content(value["textProps"].get("children"))
+        text = _normalize_rendered_text(text)
+        if text:
+            candidates.append(text)
+    return max(candidates, key=len, default=None)
 
 
 def _identity_container(top_card: dict[str, Any]) -> Any:
@@ -178,3 +202,25 @@ def _walk(value: Any):
 
 def _is_element(value: Any) -> bool:
     return isinstance(value, list) and len(value) == 4 and value[0] == "$"
+
+
+def _rendered_content(value: Any) -> str:
+    if isinstance(value, str):
+        return "" if value.startswith("$") else value
+    if _is_element(value):
+        if value[1] == "br":
+            return "\n"
+        props = value[3]
+        return _rendered_content(props.get("children")) if isinstance(props, dict) else ""
+    if isinstance(value, list):
+        return "".join(_rendered_content(item) for item in value)
+    if isinstance(value, dict):
+        if isinstance(value.get("textProps"), dict):
+            return _rendered_content(value["textProps"].get("children"))
+        return _rendered_content(value.get("children"))
+    return ""
+
+
+def _normalize_rendered_text(value: str) -> str:
+    lines = [" ".join(line.split()) for line in value.replace("\u00a0", " ").splitlines()]
+    return "\n".join(line for line in lines if line).strip()

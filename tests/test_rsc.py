@@ -18,6 +18,7 @@ def test_parses_and_resolves_flight_frames() -> None:
         value.get("states", {}).get("category", {}).get("children") == "Synthetic item"
         for value in objects
     )
+    assert document.frames[6] == "Synthetic text"
 
 
 def test_rejects_invalid_flight_stream() -> None:

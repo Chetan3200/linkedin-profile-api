@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.linkedin.parsers.rsc_profile import parse_rsc_profile
+from app.linkedin.parsers.rsc_profile import parse_rsc_about, parse_rsc_profile
 from app.linkedin.rsc import FlightDocument
 from app.linkedin.urls import validate_profile_url
 
@@ -19,3 +19,11 @@ def test_parses_rsc_top_card() -> None:
     assert profile.images.profile.width == 800
     assert profile.images.background is not None
     assert profile.images.background.width == 1200
+
+
+def test_parses_rsc_about_section() -> None:
+    content = (Path(__file__).parent / "fixtures" / "rsc" / "about.rsc").read_bytes()
+
+    about = parse_rsc_about(FlightDocument.parse(content))
+
+    assert about == "Synthetic profile summary."

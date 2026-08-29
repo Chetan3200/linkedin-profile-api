@@ -80,6 +80,41 @@ class VoyagerClient:
             raise UpstreamSchemaChanged()
         return response.content
 
+    async def load_component(self, component_request: dict[str, Any]) -> bytes:
+        component_id = component_request["newComponentId"]
+        requested_arguments = component_request["requestedArguments"]
+        payload = {
+            "clientArguments": {
+                "payload": requested_arguments["payload"],
+                "states": [],
+                "requestMetadata": requested_arguments.get(
+                    "requestMetadata", {"$type": "proto.sdui.common.RequestMetadata"}
+                ),
+                "screenId": "com.linkedin.sdui.flagshipnav.profile.Profile",
+                "knownTemplateIds": [],
+            }
+        }
+        try:
+            response = await self._client.post(
+                endpoints.RSC_COMPONENT_PATH,
+                params={"componentId": component_id, "sduiid": component_id},
+                headers={
+                    "accept": "*/*",
+                    "content-type": "application/json",
+                    "x-li-rsc-stream": "true",
+                },
+                json=payload,
+            )
+        except httpx.TimeoutException as exc:
+            raise LinkedInTimeout() from exc
+        except httpx.HTTPError as exc:
+            raise LinkedInUpstreamError() from exc
+
+        self._raise_for_upstream(response)
+        if not response.headers.get("content-type", "").startswith("application/octet-stream"):
+            raise UpstreamSchemaChanged()
+        return response.content
+
     async def me(self) -> dict[str, Any]:
         return await self._get_json(endpoints.ME)
 

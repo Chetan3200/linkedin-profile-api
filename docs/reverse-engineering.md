@@ -47,6 +47,7 @@ GET /voyager/api/identity/dash/profiles?q=memberIdentity&memberIdentity={identif
 GET /voyager/api/graphql?includeWebMetadata=true&variables=(memberIdentity:{id})&queryId={registered-query-id}
 GET /in/{identifier}/
 GET /in/{identifier}/details/{section}/
+POST /flagship-web/rsc-action/actions/component
 POST /flagship-web/rsc-action/actions/pagination
 ```
 
@@ -61,7 +62,7 @@ LinkedIn normalized responses commonly contain a primary object plus `included` 
 | Upstream concept | Public schema |
 | --- | --- |
 | Voyager profile entity | profile URN and structured fields when present |
-| RSC top-card component | full name, headline, location, images |
+| RSC top-card and above-activity components | identity, About, location, images |
 | Experience detail records | `Experience` |
 | Education pager records | `Education` and `School` |
 | Skills pager action/text | `Skill` |

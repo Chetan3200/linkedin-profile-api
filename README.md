@@ -233,7 +233,7 @@ Public deployment URL: https://linkedin-profile-api.fastapicloud.dev
 
 Swagger documentation: https://linkedin-profile-api.fastapicloud.dev/docs
 
-The service, health, readiness, docs, OpenAPI, validation, and live profile routes are verified publicly. The deployed hybrid Voyager/RSC flow returned profile identity, images, experience, education, skills, and certifications from FastAPI Cloud. Fields unavailable from the current RSC responses, including the state-bound About card, are reported honestly through `meta.partial`, section status, and warnings.
+The service, health, readiness, docs, OpenAPI, validation, and live profile routes are verified publicly. The deployed hybrid Voyager/RSC flow returns profile identity, About, images, experience, education, skills, and certifications from FastAPI Cloud. Unavailable or hidden fields are reported honestly through section status and warnings.
 
 The process-local lock and rate limiter apply independently to each replica. A single replica is preferred for this low-traffic demonstration; no database or Redis is added solely for distributed limiting.
 
@@ -262,7 +262,6 @@ See [`docs/reverse-engineering.md`](docs/reverse-engineering.md) for the update 
 - LinkedIn sessions can expire or be invalidated.
 - Voyager endpoints, decorations, GraphQL query IDs, and response schemas can change.
 - RSC component, pager, and Flight response structures can change without notice.
-- About is deferred through a state-bound component action and may be reported as partial.
 - Cloud IP addresses may be blocked or challenged even when local requests work.
 - LinkedIn CDN image URLs may expire.
 - Direct Voyager requests generally do not open a profile page, but LinkedIn controls server-side profile-view tracking.

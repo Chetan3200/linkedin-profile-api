@@ -6,7 +6,7 @@ from typing import Any
 from app.linkedin import endpoints
 from app.linkedin.errors import LinkedInError
 from app.linkedin.parsers import find_profile_urn, parse_profile
-from app.linkedin.parsers.rsc_profile import merge_profiles, parse_rsc_profile
+from app.linkedin.parsers.rsc_profile import merge_profiles, parse_rsc_about, parse_rsc_profile
 from app.linkedin.parsers.rsc_sections import parse_rsc_section
 from app.linkedin.rsc import FlightDocument
 from app.linkedin.urls import ProfileTarget
@@ -79,6 +79,23 @@ class ProfileExtractor:
                 else:
                     profile = merge_profiles(structured, rsc_profile)
 
+                about_failed = False
+                if not profile.about:
+                    component_request = main_document.component_request(
+                        "com.linkedin.sdui.generated.profile.dsl.impl.profileCardsAboveActivity"
+                    )
+                    if component_request:
+                        try:
+                            await asyncio.sleep(self._section_delay)
+                            about_document = FlightDocument.parse(
+                                await self._voyager.load_component(component_request)
+                            )
+                            profile.about = parse_rsc_about(about_document)
+                        except LinkedInError:
+                            about_failed = True
+            if not profile_urn:
+                about_failed = not bool(profile.about)
+
             sections: dict[str, SectionMetadata] = {}
             missing: list[str] = []
             warnings: list[str] = []
@@ -99,8 +116,12 @@ class ProfileExtractor:
             for name in OPTIONAL_SECTIONS:
                 sections[name] = SectionMetadata(status="empty_or_hidden", count=0)
 
-            if not profile.about:
+            if about_failed:
                 _mark_failed("about", sections, missing, warnings)
+            elif not profile.about:
+                sections["about"] = SectionMetadata(status="empty_or_hidden", count=0)
+            else:
+                sections["about"] = SectionMetadata(status="available", count=1)
 
             result = ProfileResponse(
                 profile=profile,

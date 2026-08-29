@@ -8,7 +8,6 @@ from app.linkedin.errors import UpstreamSchemaChanged
 
 REFERENCE_RE = re.compile(r"^\$(?P<tag>[LQ@]?)(?P<chunk>[0-9a-f]+)(?::(?P<path>.*))?$")
 INVALID_UNICODE_ESCAPE_RE = re.compile(r"\\u(?![0-9a-fA-F]{4})")
-FRAME_RE = re.compile(r"(?m)^(?P<label>[0-9a-f]+):")
 
 
 @dataclass(frozen=True)
@@ -22,23 +21,17 @@ class FlightDocument:
 
     @classmethod
     def parse(cls, content: bytes) -> "FlightDocument":
-        try:
-            text = content.decode("utf-8")
-        except UnicodeDecodeError as exc:
-            raise UpstreamSchemaChanged() from exc
-
         frames: dict[int, Any] = {}
         try:
-            matches = list(FRAME_RE.finditer(text))
-            for index, match in enumerate(matches):
-                body_end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-                body = text[match.end() : body_end].removesuffix("\n")
-                chunk_id = int(match.group("label"), 16)
+            for chunk_id, body, is_text in _flight_frames(content):
+                if is_text:
+                    frames[chunk_id] = body
+                    continue
                 if body.startswith("I"):
                     frames[chunk_id] = FlightImport(_json_loads(body[1:]))
                 else:
                     frames[chunk_id] = _json_loads(body)
-        except (ValueError, json.JSONDecodeError) as exc:
+        except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
             raise UpstreamSchemaChanged() from exc
         if not frames:
             raise UpstreamSchemaChanged()
@@ -125,6 +118,17 @@ class FlightDocument:
                 return value
         return None
 
+    def component_request(self, component_id: str) -> dict[str, Any] | None:
+        return next(
+            (
+                deepcopy(value)
+                for value in self.root_objects()
+                if value.get("newComponentId") == component_id
+                and isinstance(value.get("requestedArguments"), dict)
+            ),
+            None,
+        )
+
 
 def _path_value(value: Any, part: str) -> Any:
     if part == "props" and _is_element(value):
@@ -156,3 +160,34 @@ def _json_loads(value: str) -> Any:
         return json.loads(value)
     except json.JSONDecodeError:
         return json.loads(INVALID_UNICODE_ESCAPE_RE.sub(r"\\\\u", value))
+
+
+def _flight_frames(content: bytes):
+    position = 0
+    while position < len(content):
+        while position < len(content) and content[position : position + 1] in {b"\n", b"\r"}:
+            position += 1
+        if position >= len(content):
+            break
+        colon = content.find(b":", position)
+        if colon < 0:
+            raise ValueError("Flight frame label is missing")
+        chunk_id = int(content[position:colon], 16)
+        body_start = colon + 1
+        if content[body_start : body_start + 1] == b"T":
+            comma = content.find(b",", body_start + 1)
+            if comma < 0:
+                raise ValueError("Flight text length is missing")
+            length = int(content[body_start + 1 : comma], 16)
+            text_start = comma + 1
+            text_end = text_start + length
+            if text_end > len(content):
+                raise ValueError("Flight text chunk is truncated")
+            yield chunk_id, content[text_start:text_end].decode("utf-8"), True
+            position = text_end
+            continue
+
+        newline = content.find(b"\n", body_start)
+        body_end = newline if newline >= 0 else len(content)
+        yield chunk_id, content[body_start:body_end].decode("utf-8"), False
+        position = body_end + 1

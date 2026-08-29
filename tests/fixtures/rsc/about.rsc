@@ -1,0 +1,1 @@
+0:{"observabilityIdentifier":"com.linkedin.sdui.impl.profile.components.aboutSection","children":[["$","h2",null,{"textProps":{"children":["About"]}}],["$","div",null,{"textProps":{"children":["Synthetic profile summary."]}}]]}
